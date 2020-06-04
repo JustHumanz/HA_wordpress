@@ -1,0 +1,13 @@
+---
+app_user: "humanz"
+http_host: "lab.justhumanz.me"
+http_conf: "lab.justhumanz.me.conf"
+http_port: "80"
+db_host: 10.174.15.206
+db_user: "app1"
+db_pass: "Ej{Quiv3"
+db_name: "app1db"
+ansible_key: "AQDagNdeemoYAxAAuMxq8isCFU1I1C6aYUCkeg=="
+app1: "10.174.15.204:80"
+app2: "10.174.15.203:80"
+app3: "10.174.15.202:80"

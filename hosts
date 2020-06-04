@@ -1,0 +1,14 @@
+[all:vars]
+ansible_connection=ssh
+ansible_user=humanz
+
+[db]
+10.174.15.206
+
+[apps]
+10.174.15.204
+10.174.15.203
+10.174.15.202
+
+[proxy]
+10.174.15.205

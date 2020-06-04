@@ -1,0 +1,109 @@
+---
+- hosts: db
+  become: true
+  vars:
+    mysql_root_password: 1sampai8
+    mysql_databases:
+      - name: app1db
+        encoding: utf8
+        collation: utf8_unicode_ci
+    mysql_users:
+      - name: app1
+        host: "%"
+        password: Ej{Quiv3
+        priv: "app1db.*:ALL"
+  roles:
+    - geerlingguy.mysql
+
+- hosts: proxy
+  become: true
+  vars_files:
+    - vars/default.yml
+  tasks:
+    - name: Install nginx
+      yum:
+        name: nginx
+        state: latest
+
+    - name: copy nginx conf to proxy
+      template:
+        src: "files/proxy.conf.j2"
+        dest: "/etc/nginx/conf.d/proxy.conf"
+
+    - name: Restart nginx
+      service:
+        name: nginx
+        state: restarted
+
+- hosts: apps
+  become: true
+  vars_files:
+    - vars/default.yml
+  tasks:
+    - name: mount cephfs
+      command: mount -t ceph 10.174.15.201:6789:/ /mnt -o name=admin,secret='{{ ansible_key }}'
+
+    - name: install depedency
+      apt:
+        pkg:
+          - php
+          - apache2
+          - libapache2-mod-php
+          - php-mysql
+          - unzip
+
+    - name: create dir
+      file:
+        path: "/var/www/{{ http_host }}"
+        state: directory
+        mode: '0755'
+
+    - name: Set up Apache virtualhost
+      template:
+        src: "files/apache.conf.j2"
+        dest: "/etc/apache2/sites-available/{{ http_conf }}"
+
+    - name: Enable new site
+      shell: /usr/sbin/a2ensite {{ http_conf }}
+
+    - name: Sets Up PHP Info Page
+      template:
+        src: "files/info.php.j2"
+        dest: "/var/www/{{ http_host }}/info.php"
+
+    - name: Restart service
+      service:
+        name: apache2
+        state: restarted
+    
+    - name: Install wp
+      unarchive:
+        src: https://wordpress.org/latest.zip
+        dest: /tmp
+        remote_src: yes
+
+    - name: Move wp
+      copy: 
+        remote_src: True
+        src: "/tmp/wordpress/"
+        dest: /var/www/{{ http_host }}
+
+    - name: Copy wp-conf
+      template:
+        src: "files/wp-config.php.j2"
+        dest: "/var/www/{{ http_host }}/wp-config.php"
+
+    - name: Copy wp-content
+      copy:
+        remote_src: True
+        src: "/var/www/{{ http_host }}/wp-content"
+        dest: "/mnt/"
+      run_once: true
+    
+    - name: Remove wp-content
+      file:
+        path: "/var/www/{{ http_host }}/wp-content"
+        state: absent
+
+    - name: link wp-content
+      command: 'ln -s /mnt/wp-content /var/www/{{ http_host }}'
